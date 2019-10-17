@@ -1,0 +1,19 @@
+* Google Apps Scripts
+
+** Prerequisites
+
+Official docs: https://developers.google.com/apps-script/guides/typescript
+
+tl;dr:
+- node, npm
+- clasp cli for code uploads
+  - ~npm install -g @google/clasp~
+- types for typescript autocompletion
+  - ~npm i -S @types/google-apps-script~
+
+** Getting started
+- create folder for new app script
+- login to Google via clasp
+  - ~clasp login~
+- create new project
+  - ~clasp create my-project~
