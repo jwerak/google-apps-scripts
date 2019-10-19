@@ -17,3 +17,12 @@ tl;dr:
   - ~clasp login~
 - create new project
   - ~clasp create my-project~
+
+** Todos [33%]
+- [ ] configuration from spreadsheet
+  - [ ] destination calendar
+  - [ ] event type info
+- [X] Don't create duplicate events
+- [ ] better input
+  - form maybe?
+  - not comma separated values?

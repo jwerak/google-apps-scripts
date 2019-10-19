@@ -1,11 +1,14 @@
 
 function main() {
-  const thisMonth = getThisMonthRow()
-  new MonthWork(thisMonth)
+  const thisMonth = getThisMonthRowFromSheet()
+  let m = new MonthWork(thisMonth)
+  m.ensureEventsExist()
 }
 
+const CalendarId: string = 'primary'
+
 // getThisMonthRow Loads info about current month
-const getThisMonthRow = (): any[] => {
+const getThisMonthRowFromSheet = (): any[] => {
   let sheet = SpreadsheetApp.getActiveSheet();
   let thisRow = sheet.getDataRange().getValues()[1]
   return thisRow
@@ -30,14 +33,25 @@ const EventsInfoByType = {
   },
   'afternoon': {
     description: "Odpoledni",
-    startHour: 12,
-    durationInHours: 6
+    startHour: 14,
+    durationInHours: 5
   }
 }
 
 interface WorkDay {
   day: number,
   type: string,
+}
+
+interface CalendarEvent {
+  summary: string,
+  location: string,
+  start: {
+    dateTime: string
+  },
+  end: {
+    dateTime: string
+  }
 }
 
 // Contains info about this month work shifts
@@ -53,17 +67,25 @@ class MonthWork {
     this.month = thisMonthRange[1]
     this.monthStart = new Date(this.year, this.month)
 
-    let days = getDays(thisMonthRange[2] as string)
+    let days = getDays(thisMonthRange[2].toString())
     this.addEvents(days, 'day')
-    let nights = getDays(thisMonthRange[3] as string)
+    let nights = getDays(thisMonthRange[3].toString())
     this.addEvents(nights, 'night')
-    let mornings = getDays(thisMonthRange[4] as string)
+    let mornings = getDays(thisMonthRange[4].toString())
     this.addEvents(mornings, 'morning')
-    let afternoons = getDays(thisMonthRange[5] as string)
+    let afternoons = getDays(thisMonthRange[5].toString())
     this.addEvents(afternoons, 'afternoon')
+  }
 
+  ensureEventsExist() {
     this.workDays.forEach(e => {
-      createCalendarEvent(this.year, this.month, e.day, e.type)
+      let event = composeEvent(this.year, this.month, e.day, e.type)
+      if (isEventExist(event, CalendarId)) {
+        Logger.log('Event already exist: ' + event.start)
+        return
+      }
+      // if exist => continue
+      createCalendarEvent(event, CalendarId)
     })
   }
 
@@ -80,20 +102,12 @@ class MonthWork {
   }
 }
 
-const getDays = (input: string): number[] => {
-  let days = input.split(',').map(function(d) {
-    return parseInt(d)
-  })
-  return days
-}
-
-const createCalendarEvent = (year: number, month: number, day: number, type: string) => {
+const composeEvent = (year: number, month: number, day: number, type: string): CalendarEvent => {
   let eventInfo = EventsInfoByType[type]
   let start = new Date(year, month - 1, day, eventInfo.startHour)
   let end = new Date(year, month - 1, day, eventInfo.startHour + eventInfo.durationInHours)
 
-  let calendarId = 'primary';
-  let event = {
+  return {
     summary: eventInfo.description,
     location: 'Jana Evangelisty Purkyně 270/5, 434 01 Most, Czechia',
     start: {
@@ -103,6 +117,40 @@ const createCalendarEvent = (year: number, month: number, day: number, type: str
       dateTime: end.toISOString()
     },
   };
+}
+
+const getDays = (input: string): number[] => {
+  let days = input
+    .replace('/\s/g', "")
+    .split(',')
+    .map(function(d) {
+      return parseInt(d)
+    })
+  return days
+}
+
+const isEventExist = (event: CalendarEvent, calendarId?: string): boolean => {
+  if (!calendarId) {
+    calendarId = 'primary'
+  }
+  let foundEvent = Calendar.Events.list(calendarId, {
+    timeMin: event.start.dateTime,
+    singleEvents: true,
+    orderBy: 'startTime',
+    maxResults: 1
+  });
+
+  if (foundEvent.items.length < 1) {
+    return false
+  }
+
+  return foundEvent.items[0].summary == event.summary
+}
+
+const createCalendarEvent = (event: CalendarEvent, calendarId?: string) => {
+  if (!calendarId) {
+    calendarId = 'primary'
+  }
 
   let calEvent = Calendar.Events.insert(event, calendarId);
   Logger.log('Event ID: ' + calEvent.id);
