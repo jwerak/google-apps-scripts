@@ -1,3 +1,9 @@
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Vyplneni Sluzeb')
+    .addItem('Vypln sluzby', 'main')
+    .addToUi();
+}
 
 function main() {
   const thisMonth = getThisMonthRowFromSheet()
